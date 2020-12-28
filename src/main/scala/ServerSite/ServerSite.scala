@@ -1,6 +1,5 @@
 package ServerSite
 
-import cats.data.Kleisli
 import cats.effect._
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import org.http4s._
@@ -12,26 +11,19 @@ import scala.concurrent.ExecutionContext.global
 
 object ServerSite extends IOApp {
 
-  val app: Kleisli[IO, Request[IO], Response[IO]] = HttpRoutes
-    .of[IO] {
-      case GET -> Root / "Ping" =>
-        for {
-          logger   <- Slf4jLogger.create[IO]
-          _        <- logger.info("I've recieved a get of Ping")
-          response <- Ok("Pong")
-        } yield response
-
-      case GET -> Root / "Bazzegeuse" =>
-        Ok("Violin Intensifies")
-      case GET -> Root / "MA" =>
-        Ok("Tu puta madre")
-    }
-    .orNotFound
+  val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case GET -> Root / "Ping" =>
+      for {
+        logger   <- Slf4jLogger.create[IO]
+        _        <- logger.info("I've recieved a get of Ping")
+        response <- Ok("Pong")
+      } yield response
+  }
 
   def run(args: List[String]): IO[ExitCode] =
     BlazeServerBuilder[IO](global)
       .bindHttp(8080, "localhost")
-      .withHttpApp(app)
+      .withHttpApp(routes.orNotFound)
       .serve
       .compile
       .drain
